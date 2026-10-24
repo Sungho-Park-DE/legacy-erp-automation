@@ -1,0 +1,23 @@
+{
+  "_comment": "Invented rules for the fake ERP. Keys starting with _ are ignored by the loader. Functions print_form, delete_form and finalize_form exist in the fake but are deliberately not listed: not listed means not allowed. Dialog patterns are matched against the whole text, case-sensitively; any question dialog containing a forbidden word is rejected whatever the rules say; any text matching no rule stops the robot.",
+  "screens": ["HomeScreen", "QuoteScreen", "ListScreen"],
+  "popups": {
+    "ItemPicker": { "parent": "QuoteScreen", "opener": "open_picker" }
+  },
+  "calls": {
+    "HomeScreen": [],
+    "QuoteScreen": ["new_form", "fill_line", "open_picker", "save_form"],
+    "ItemPicker": ["pick_item", "close_picker"],
+    "ListScreen": ["refresh_list", "open_row"]
+  },
+  "save_calls": ["save_form"],
+  "forbidden": ["delete", "print", "finalize", "discard"],
+  "dialogs": [
+    { "pattern": "Save this form\\?", "answer": "accept", "when": "saving", "during": "save_form" },
+    { "pattern": "Saved\\.", "answer": "accept", "when": "saving" },
+    { "pattern": "Loading complete\\.", "answer": "accept", "when": "always" },
+    { "pattern": "Delete this document\\?", "answer": "reject", "when": "always" },
+    { "pattern": "Print this form\\?", "answer": "reject", "when": "always" },
+    { "pattern": "Finalize and lock this quote\\?", "answer": "reject", "when": "always" }
+  ]
+}

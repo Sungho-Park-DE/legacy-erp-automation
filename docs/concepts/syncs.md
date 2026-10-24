@@ -26,6 +26,11 @@ sync ConfirmedSightingJoinsCall
 ## Quote to queue
 
 ```text
+sync OperatorAddsCatalogLine
+  when   Request.add_line(quote, identifier, qty)
+  where  Catalog.lookup(identifier) -> rows
+  then   Quote.add_line(quote, row.code, row.name, qty) for each chosen row
+
 sync OperatorSetsPrice
   when   Request.set_price(quote, line, price)
   then   Quote.set_price(quote, line, price)
@@ -36,7 +41,9 @@ sync SentQuoteBecomesJob
          JobQueue.enqueue(job = quote, payload = { lines, save })
 ```
 
-`save` is the operator's choice per quote and is honoured only when flag `SAVE` is on; otherwise every job is a dry run.
+`save` is the operator's choice per quote and is honoured only when flag `SAVE` is on; otherwise every job is a dry run. The flag is checked twice, when the job is queued and again when it runs; a flag that was switched off in between turns the save step into a Deny, which ends the job as NEEDS_HUMAN.
+
+Sending the same quote twice never reaches the queue: `Quote.send` refuses a quote that was already sent. `JobQueue.enqueue` is a second guard for a job id it already knows.
 
 ## Running a job
 
@@ -55,6 +62,7 @@ sync RunNextJob
                                  Accept -> Erp.answer_dialog(True); Reject -> Erp.answer_dialog(False); Stop -> stop
          dry run: Erp.reset() after the last step, outcome done
          stop (Deny or Stop) -> Erp.reset(); JobQueue.finish(job, needs_human, reason)
+         saved job: no reset; the read back below decides the outcome
 
 sync SavedJobIsReadBack
   when   RunNextJob saved job

@@ -48,6 +48,10 @@ class ErpRecipe(Protocol):
     """How one job is typed into the ERP: screens, field paths, functions."""
 
     def steps(self, payload: dict) -> list[Step]: ...
+    def read_back_steps(self, job: str) -> list[Step]:
+        """Steps (checked by ActionPolicy like any other) that bring the viewer to where `read_back` works."""
+        ...
+
     def read_back_ref(self, job: str) -> str: ...
 
 
