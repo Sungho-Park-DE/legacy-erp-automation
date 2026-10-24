@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from app import adapters
-from app.adapters import FakeErpViewer, flicker
+from app.adapters import FakeErpViewer, SimulatedCrash, flicker
 from app.adapters.ports import Document, PhoneEvent
 from app.modules.jobqueue_v1 import JobState
 from app.modules.quote_v1 import QuoteSent
@@ -17,11 +17,13 @@ from app.syncs import (
     Event,
     World,
     build_world,
+    edit_becomes_job,
     hang_up_ends_call,
     operator_adds_catalog_line,
     operator_sets_price,
     poll_phone,
     poll_screen,
+    recover_interrupted_jobs,
     run_next_job,
     sent_quote_becomes_job,
 )
@@ -333,6 +335,112 @@ def scenario_error_duplicate_stop() -> Outcome:
     )
 
 
+def scenario_crash_after_save() -> Outcome:
+    s = Scenario(7, "The bot dies right after pressing save")
+    with save_flag(True):
+        erp = FakeErpViewer(crash_after_save=True)
+        world = build_world(erp=erp)
+        job = send_quote(world, s, save=True)
+        s.say("The journal is written before the save call; the bot process dies once the save went through.")
+        try:
+            run_next_job(world)
+            crashed = False
+        except SimulatedCrash:
+            crashed = True
+        s.show(world)
+        s.expect(crashed and world.journal.phase(job) == "saving", "the job is left running, the journal says saving")
+
+        s.say("A new worker starts with the same queue and journal.")
+        restarted = build_world(erp=erp, queue=world.queue, journal=world.journal)
+        recover_interrupted_jobs(restarted)
+        s.show(restarted)
+    state, final = job_line(restarted, job)
+    saves = [fn for _screen, fn in erp.calls_made].count("save_form")
+    s.expect(saves == 1, f"save_form was called {saves} time(s) in total")
+    s.expect(state == "done", "the restarted worker only read the document back")
+    return s.end(
+        "the journal said a save was under way, so the job was read back, never typed again",
+        final,
+        state,
+        "done",
+        "a crash between save and read back never leads to a second save",
+    )
+
+
+EDIT_TARGET = [{"code": "P-100", "qty": 3, "price": Decimal("12.50")}]
+
+
+def _saved_job(s: Scenario, erp: FakeErpViewer) -> tuple[World, str]:
+    world = build_world(erp=erp)
+    send_quote(world, s, save=True)
+    job = run_once(world, s)
+    s.expect(world.queue.status(job).state is JobState.DONE, f"job {job} was saved and verified first")
+    return world, job
+
+
+def _edit(s: Scenario, world: World, job: str) -> tuple[str, str]:
+    s.say("The operator asks to change it: P-100 to 3, P-101 removed.")
+    edit_becomes_job(world, job, EDIT_TARGET, f"{job}-edit-1")
+    run_once(world, s)
+    return job_line(world, f"{job}-edit-1")
+
+
+def scenario_edit_saved_document() -> Outcome:
+    s = Scenario(8, "Change a saved document")
+    with save_flag(True):
+        erp = FakeErpViewer()
+        world, job = _saved_job(s, erp)
+        state, final = _edit(s, world, job)
+    s.say(f"The fake ERP now holds {document_text(erp.documents.get(job))}")
+    s.expect(state == "done", "the change was saved and read back")
+    s.expect(erp.dangerous_calls == [], "no dangerous function was called")
+    return s.end(
+        "planned against the document as it is now; removal confirmed for that item only; one update request",
+        final,
+        state,
+        "done",
+        "a saved document is changed under the same locks",
+    )
+
+
+def scenario_edit_changed_by_person() -> Outcome:
+    s = Scenario(9, "A person changed the document first")
+    with save_flag(True):
+        erp = FakeErpViewer()
+        world, job = _saved_job(s, erp)
+        s.say("Meanwhile a person changes P-101 to 5 directly in the ERP.")
+        erp.edit_by_person(job, [{"code": "P-100", "qty": 2, "price": "12.50"}, {"code": "P-101", "qty": 5, "price": None}])
+        updates = erp.request_log().count("update")
+        state, final = _edit(s, world, job)
+    s.expect(erp.request_log().count("update") == updates, "no update request was sent")
+    s.expect(state == "needs_human", "the bot does not overwrite the person")
+    return s.end(
+        "the document is no longer what the bot saved, so the bot stops before typing anything",
+        final,
+        state,
+        "needs_human",
+        "a change made by a person is never overwritten",
+    )
+
+
+def scenario_edit_wrong_item_question() -> Outcome:
+    s = Scenario(10, "The removal question names another item")
+    with save_flag(True):
+        erp = FakeErpViewer(name_in_removal="P-999")
+        world, job = _saved_job(s, erp)
+        state, final = _edit(s, world, job)
+    codes = [line["code"] for line in erp.documents[job].lines]
+    s.expect(codes == ["P-100", "P-101"], f"the stored document still has {codes}")
+    s.expect(state == "needs_human", "the question was answered no and a person decides")
+    return s.end(
+        "removal questions are accepted only during remove_line and only for the item being removed",
+        final,
+        state,
+        "needs_human",
+        "a dangerous confirmation is accepted for one exact item",
+    )
+
+
 SCENARIOS: tuple[Callable[[], Outcome], ...] = (
     scenario_dry_run,
     scenario_save_and_verify,
@@ -340,6 +448,10 @@ SCENARIOS: tuple[Callable[[], Outcome], ...] = (
     scenario_erp_lies,
     scenario_forbidden_function,
     scenario_error_duplicate_stop,
+    scenario_crash_after_save,
+    scenario_edit_saved_document,
+    scenario_edit_changed_by_person,
+    scenario_edit_wrong_item_question,
 )
 
 

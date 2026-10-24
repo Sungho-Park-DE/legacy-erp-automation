@@ -12,6 +12,10 @@ HEADERS = [
     "=== Scenario 4: The ERP lies about saving",
     "=== Scenario 5: The bot tries a forbidden function",
     "=== Scenario 6: Adapter error, duplicate send, STOP",
+    "=== Scenario 7: The bot dies right after pressing save",
+    "=== Scenario 8: Change a saved document",
+    "=== Scenario 9: A person changed the document first",
+    "=== Scenario 10: The removal question names another item",
 ]
 
 
@@ -26,8 +30,8 @@ def test_main_returns_zero_and_prints_every_scenario(capsys):
     for header in HEADERS:
         assert header in out
     assert "[FAIL]" not in out
-    assert out.count("verdict:") == 6
-    assert out.count("final job state:") == 6
+    assert out.count("verdict:") == 10
+    assert out.count("final job state:") == 10
     assert "=== Summary ===" in out
     assert out.rstrip().endswith("These are invented fakes; passing says nothing about a real system.")
 
@@ -36,7 +40,7 @@ def test_summary_table_has_the_final_states(capsys):
     main()
     rows = [line for line in capsys.readouterr().out.splitlines() if line.startswith("  ") and " | " in line]
     states = [row.split(" | ")[1].strip() for row in rows[1:]]
-    assert states == ["done", "done", "needs_human", "needs_human", "needs_human", "failed"]
+    assert states == ["done", "done", "needs_human", "needs_human", "needs_human", "failed", "done", "done", "needs_human", "needs_human"]
 
 
 def test_output_is_deterministic_and_ascii(capsys):
