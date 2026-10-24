@@ -64,6 +64,47 @@ def test_only_save_step_is_marked_as_save():
     assert [s.fn for s in saves] == ["save_form"]
 
 
+def test_edit_steps():
+    ops = [
+        {"op": "remove", "code": "P-200"},
+        {"op": "qty", "code": "P-100", "qty": 3},
+        {"op": "add", "code": "P-300", "qty": 1, "price": Decimal("1E+1")},
+        {"op": "add", "code": "P-400", "qty": 2, "price": None},
+    ]
+    assert FakeRecipe().edit_steps("Q-7", ops) == [
+        Open("EditScreen"),
+        Set("header.ref", "Q-7"),
+        Call("load_document"),
+        Set("edit.code", "P-200"),
+        Call("remove_line"),
+        Set("edit.code", "P-100"),
+        Set("edit.qty", "3"),
+        Call("set_line_qty"),
+        Set("edit.code", "P-300"),
+        Set("edit.qty", "1"),
+        Set("edit.price", "10"),
+        Call("add_line"),
+        Set("edit.code", "P-400"),
+        Set("edit.qty", "2"),
+        Call("add_line"),
+        Call("update_form", is_save=True),
+    ]
+
+
+def test_edit_steps_never_emit_dangerous_functions_and_only_last_saves():
+    steps = FakeRecipe().edit_steps("Q-7", [{"op": "remove", "code": "P-1"}])
+    calls = [s for s in steps if isinstance(s, Call)]
+    assert not {s.fn for s in calls} & set(DANGEROUS)
+    assert [s.fn for s in calls if s.is_save] == ["update_form"] and calls[-1].is_save
+
+
+def test_item_in_dialog():
+    recipe = FakeRecipe()
+    assert recipe.item_in_dialog("Remove item P-200 from this document?") == "P-200"
+    assert recipe.item_in_dialog("Remove item P-200 from this document? ") is None
+    assert recipe.item_in_dialog("Save changes to this document?") is None
+
+
 def test_read_back():
     recipe = FakeRecipe()
     assert recipe.read_back_steps("Q-7") == [Open("ListScreen"), Call("refresh_list")]
