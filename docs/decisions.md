@@ -11,8 +11,9 @@ The decisions that shaped the real system, in the order they were made, with one
 | 5 | A resident watcher on the field PC, and self-healing. | The phone program's log and the catalog screen are on the field PC, which is where the watchers have to run. Self-healing: the emergency that matters is the operator being unable to use the quote site, so the server restarts the site by itself, and a button on the field PC can restore the server. |
 | 6 | The input-only virtual machine is dropped; one server does the job. | It was no longer in use; further reason not recorded. |
 | 7 | The bot copies only prices that a person entered. | The owner wanted prices to stay a person's call (the Quote concept: only a person ever sets a price); the bot is not to decide them. |
+| 8 | When a saved document has to change, the bot may take one line out of the document it saved itself, but only when the confirmation question names exactly that item. Deleting a document stays with a person. | A change to a saved document sometimes means taking a line out; why the exception was made beyond that is not recorded. |
 
 ## How to read these rows
 
-- The first, fourth and last rows are the ones the design depends on most: what a person keeps, how the bot talks to the ERP, and where a price comes from. They appear again as [ActionPolicy](concepts/ActionPolicy.md), the `ErpViewer` port in [ports.py](../app/adapters/ports.py), and [Quote](concepts/Quote.md).
+- The first, fourth and seventh rows are the ones the design depends on most: what a person keeps, how the bot talks to the ERP, and where a price comes from. They appear again as [ActionPolicy](concepts/ActionPolicy.md), the `ErpViewer` port in [ports.py](../app/adapters/ports.py), and [Quote](concepts/Quote.md).
 - Reasons are one sentence each and are summaries, not quotations. Where no reason was written down, the row says so instead of inventing one.

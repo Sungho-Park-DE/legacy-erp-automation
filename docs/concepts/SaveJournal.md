@@ -22,4 +22,6 @@
 - known_before(job) -> set str? (document refs that existed before the save)
 - saved_ref(job) -> str?
 
+**Precondition for "no entry means nothing was saved":** the entry is written durably before the save function is called. An in-memory journal that is lost with the process cannot tell "never saved" from "journal gone".
+
 **Not this concept's job:** storing itself on disk (the real system keeps it in a file next to the queue; the demo keeps it in memory and reuses it across a simulated restart), deciding what to do with an interrupted job (sync `RecoverInterruptedJob`).

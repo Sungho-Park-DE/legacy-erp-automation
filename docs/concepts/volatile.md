@@ -18,6 +18,6 @@ What is known to change before any code exists, and the one place each is hidden
 | Automatic re-login: at most once | Policy value (account lock-out) | `app/settings.py` |
 | Supervisor: stop restarting after 3 in a row or 4 per hour | Policy values | `app/settings.py` |
 | Requests a document change may send: exactly one update, none of delete, finalize, print, save | Depend on the target ERP's request names; set by a person | `app/settings.py` (`EDIT_UPDATE_REQUEST`, `EDIT_DANGEROUS_REQUESTS`) |
-| How a confirmation dialog names an item | Outside dialog text | the recipe (`ErpRecipe.item_in_dialog`) |
+| How a confirmation dialog names an item, which function removes a line, which field holds the item being removed | Outside dialog text, function and field names | the recipe (`ErpRecipe.item_in_dialog`, `removal_fn`, `item_field`) |
 | Where the save journal is kept (file next to the queue in the real system, memory here) | Deployment choice | passed into `build_world` (`app/syncs/world.py`) |
 | Which read-back judgement runs (version 1, or version 2 that finds the document the ERP numbered) | Turned on per site by a person | flag `LEA_FLAG_VERIFICATION_V2`, read only in `app/syncs` |

@@ -75,7 +75,10 @@ sync VerificationFinishesJob
 
 sync AdapterErrorFinishesJob
   when   any Erp.* raises
-  then   Erp.reset() (best effort); JobQueue.finish(job, failed, error)
+  then   Erp.reset() (best effort)
+         SaveJournal.phase(job) is none  -> JobQueue.finish(job, failed, error)
+         SaveJournal.phase(job) is saving or read_back -> JobQueue.finish(job, needs_human, "error after the save was started ...")
+                                                          # the document may be saved; a `failed` job would be sent again
 ```
 
 No sync retries a job. A person re-sends, which is a new job id.
@@ -88,8 +91,8 @@ sync SaveIsJournaled
   where  SaveJournal.phase(job) = none          # else stop: needs_human "save already attempted"
   then   SaveJournal.mark_saving(job, payload.lines, known_before)   # before Erp.call(fn)
 
-sync ReadBackIsJournaled
-  when   SavedJobIsReadBack found document ref
+sync ReadBackIsJournaled        # a step inside SavedJobIsReadBack, not a function of its own
+  when   SavedJobIsReadBack found document ref        # before the comparison, so a mismatch is recorded too
   then   SaveJournal.mark_read_back(job, ref)
 
 sync RecoverInterruptedJob
@@ -107,18 +110,21 @@ sync RecoverInterruptedJob
 sync EditBecomesJob
   when   Request.edit(job_of, lines)
   where  SaveJournal.saved_lines(job_of) = base and SaveJournal.saved_ref(job_of) = ref
-  then   JobQueue.enqueue(edit_job, payload = { mode: edit, of: job_of, ref, base, lines, save: true })
+         and JobQueue.status(job_of) = done          # else refused (ValueError)
+  then   JobQueue.enqueue(edit_job, payload = { mode: edit, of: job_of, ref, base, lines, save: flag SAVE })
 
 sync RunEditJob
   when   JobQueue.take() -> (job, payload with mode edit)
   then   current := Erp.read_back(ref) through ErpRecipe.read_back_steps     # allowed screens only
          Revision.plan(base, current, lines) -> Stop(r) ? needs_human r
+         payload.save and flag SAVE not both on -> Erp.reset(); JobQueue.finish(job, done, "dry run")      # nothing typed
          mark := len(Erp.request_log())
          steps := ErpRecipe.edit_steps(ref, ops), run like RunNextJob (same ActionPolicy checks, journal before the save step)
-         a dialog accepted by ActionPolicy while fn = remove_line is answered true only if
+         a dialog accepted by ActionPolicy that names an item, or that comes while fn = ErpRecipe.removal_fn, is answered true only if
            Revision.may_confirm_removal(ErpRecipe.item_in_dialog(text), item being removed); else answered false and stop
+         a dialog ActionPolicy rejects while fn = ErpRecipe.removal_fn is answered false and stops the change before the update
          Revision.check_requests(Erp.request_log()[mark:], settings.EDIT_UPDATE_REQUEST, settings.EDIT_DANGEROUS_REQUESTS) -> Stop(r) ? needs_human r
          read back and Verification.compare(expected = lines)
 ```
 
-An edit is a new job id; the original job is never re-run.
+An edit is a new job id; the original job is never re-run. A second edit names the latest job that changed the document (`of`), because `base` is what that job saved; naming the first one stops with `changed since saved`. `known_before` is empty for an edit job and `SavedJobIsReadBack` takes `ref` from the payload, so version 2's `locate` is not used for edits.

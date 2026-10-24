@@ -419,7 +419,7 @@ def scenario_edit_changed_by_person() -> Outcome:
         final,
         state,
         "needs_human",
-        "a change made by a person is never overwritten",
+        "a line a person changed is not overwritten",
     )
 
 

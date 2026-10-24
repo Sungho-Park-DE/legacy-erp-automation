@@ -9,7 +9,7 @@ The bot follows fixed rules and uses no language model at run time. Everything i
 Three ideas carry it:
 
 1. **Wrap, do not replace.** The bot drives the ERP through the scripting object that its own form viewer already offers. The catalog site is only read. A small watcher on the operator's PC reads the screen and touches nothing.
-2. **Make the dangerous things impossible, not avoided.** The bot has an allow-list of screens and form functions. Printing, deleting and final confirmation are not on it, so there is no way to call them. Saving needs two separate locks.
+2. **Make the dangerous things impossible, not avoided.** The bot has an allow-list of screens and form functions. Printing, deleting a document and final confirmation are not on it, so there is no way to call them. The one destructive step it has, removing a line from a document it saved itself, is allowed only for the exact item a confirmation names. Saving needs two separate locks.
 3. **Do not trust the old system's own messages.** After saving, the bot reads the document back and compares it with what was meant. Anything unexpected stops the job and hands it to a person.
 
 The design is about those safeguards. Everything you can run in this repository is shown on invented fake systems.
@@ -61,7 +61,7 @@ Solid arrows are data the system sends; dotted arrows are places where a watcher
 
 ## Flow
 
-1. The phone rings. The phone-number watcher puts the caller number on the server (about 4 seconds later).
+1. The phone rings. The phone-number watcher puts the caller number on the server within about 2 seconds.
 2. The operator looks something up in the catalog system.
 3. The screen watcher notices the identifier on the operator's screen and attaches it to the current call on the server.
 4. The quote web app builds the quote lines from it.
@@ -76,7 +76,7 @@ Solid arrows are data the system sends; dotted arrows are places where a watcher
 
 | Principle | What it means here |
 |---|---|
-| A person keeps every decision that matters | Prices come only from a person. Printing, deleting and the final confirmation are done by a person; the bot has no way to call them. |
+| A person keeps every decision that matters | Prices come only from a person. Printing, deleting a document and the final confirmation are done by a person; the bot has no way to call them (it can only take a line out of a document it saved, see [safeguard 10](docs/bot-safety.md#10-changing-a-saved-document)). |
 | Things that must not happen are impossible, not avoided | An allow-list (screens, form functions) decides what exists for the bot. A function not on the list cannot be called, so there is nothing to forget to avoid. Saving needs two separate locks. |
 | Do not trust the target's own messages | A "saved" notice proves nothing. After saving, the bot reads the document back and compares it with the intent. |
 | Stop instead of guessing | An unknown dialog, a denied action or a mismatch stops the job and hands it to a person. One automatic re-login at most, so an account is never locked out by retries. |
@@ -94,7 +94,7 @@ The safeguards are described one by one in [docs/bot-safety.md](docs/bot-safety.
 
 Three methods, each with a single job:
 
-- **Concept design.** Functionality is split into independent concepts, each with a purpose, state, actions and an operational principle, connected only by declarative synchronizations. The specs come before the code: [Quote](docs/concepts/Quote.md), [JobQueue](docs/concepts/JobQueue.md), [ActionPolicy](docs/concepts/ActionPolicy.md), [Verification](docs/concepts/Verification.md), [Call](docs/concepts/Call.md), [Sighting](docs/concepts/Sighting.md), the [syncs](docs/concepts/syncs.md), and the list of [volatile decisions](docs/concepts/volatile.md) with the one place each is hidden.
+- **Concept design.** Functionality is split into independent concepts, each with a purpose, state, actions and an operational principle, connected only by declarative synchronizations. The specs come before the code: [Quote](docs/concepts/Quote.md), [JobQueue](docs/concepts/JobQueue.md), [ActionPolicy](docs/concepts/ActionPolicy.md), [Verification](docs/concepts/Verification.md), [SaveJournal](docs/concepts/SaveJournal.md), [Revision](docs/concepts/Revision.md), [Call](docs/concepts/Call.md), [Sighting](docs/concepts/Sighting.md), the [syncs](docs/concepts/syncs.md), and the list of [volatile decisions](docs/concepts/volatile.md) with the one place each is hidden.
 - **Let It Slop.** Each folder in `app/modules` is one isolated, replaceable module. Modules never import each other; they meet only in `app/syncs`. When requirements change materially, a new version is written next to the old one and switched on with a flag, instead of refactoring the old one.
 - **TCR** (test && commit || revert). In the author's local workflow, a green test run is committed automatically and a red one is reverted automatically. The tooling for this is not part of the repository.
 

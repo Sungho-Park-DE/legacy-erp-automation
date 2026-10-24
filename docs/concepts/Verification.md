@@ -25,6 +25,7 @@
 **Actions (in addition to `compare` and `result`, same shapes as version 1):**
 - locate(job, documents: list { ref, note? }, known_before: set str) -> Found(ref) | NotFound | Many(refs)
   - candidates are documents whose note equals job and whose ref is not in known_before
+  - so the target system must keep the typed reference as the document's note; a system that stores the document under the typed reference itself has no note and always gives NotFound
 - compare(job, expected, actual)
   - header keys in `expected` must be equal in `actual`
   - a line in `actual` that carries a `ref` other than `actual.header.ref` -> Mismatch(`line from another document <ref>`) and nothing else is compared
