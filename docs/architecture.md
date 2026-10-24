@@ -7,7 +7,7 @@ Overview and diagram: [README](../README.md). This page lists the components, fo
 | Component | Runs on | What it does | How |
 |---|---|---|---|
 | Quote web app | Server | Looks up the catalog, builds quote lines, puts them in the bot's queue | Python web server; reads catalog pages through browser automation (DOM); a pool of up to 4 windows, 1.5 s apart |
-| ERP input bot | Server | Takes jobs from the queue, enters them into the legacy ERP and saves them | Scripting object of the ActiveX form viewer, driven through COM: call a form function, set a value, read the screen data as XML |
+| ERP input bot | Server | Takes jobs from the queue, enters them into the legacy ERP and saves them | Scripting object of the ActiveX form viewer, driven through COM: call a form function, set a value, read the screen data as XML ([legacy-viewer.md](legacy-viewer.md)) |
 | Catalog screen watcher | Field PC | Reads the text of the catalog screen the operator is looking at and sends it to the server | PowerShell + UI Automation, read-only ([screen-watcher.md](screen-watcher.md)) |
 | Catalog collector | Server | Collects the item lists of groups in advance | Browser automation; reads the rows of a grid object, including hidden columns |
 | Phone-number watcher | Field PC | Sends the caller number to the server | PowerShell; follows the phone program's log file, opened in shared mode, every 0.3 s |

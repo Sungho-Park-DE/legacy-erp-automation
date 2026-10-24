@@ -8,6 +8,9 @@ include = ["app*"]
 [project]
 name = "legacy-erp-automation"
 version = "0.1.0"
+description = "A rule-based bot on top of a legacy ActiveX ERP: allow-lists, a double save lock and read-back checks, shown against fakes"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.11"
 dependencies = []
 

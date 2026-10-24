@@ -84,6 +84,12 @@ Solid arrows are data the system sends; dotted arrows are places where a watcher
 
 The safeguards are described one by one in [docs/bot-safety.md](docs/bot-safety.md).
 
+## Why not replace it, or record keystrokes?
+
+- **Replace the ERP:** it belongs to someone else and cannot be changed. The automation has to live with it as it is.
+- **Keyboard and screen-coordinate macros:** this was the first version. It needs the window in front, a fixed screen resolution and measured coordinates. It was deleted once the scripting route worked.
+- **What is used instead:** the form viewer's own scripting interface, over COM. The bot calls the same form functions a person's typing triggers, reads the form's data as XML, and works while the browser is behind other windows or minimized. How that works, and where it bites: [docs/legacy-viewer.md](docs/legacy-viewer.md).
+
 ## How the repo is built
 
 Three methods, each with a single job:
@@ -96,19 +102,46 @@ Outside systems are reached only through ports in `app/adapters` ([ports.py](app
 
 ## How to run it
 
-Tests:
+Needs Python 3.11 or newer. The code itself uses only the standard library; the tests need pytest. Run everything from the repository root.
+
+Windows:
 
 ```text
-.venv\Scripts\python -m pytest -q -x
-```
-
-Scenario demo (no real waiting, same output every run):
-
-```text
+py -3 -m venv .venv
+.venv\Scripts\python -m pip install -e ".[test]"
+.venv\Scripts\python -m pytest -q
 .venv\Scripts\python -m demo
 ```
 
-It runs six scenarios against the fakes and prints each step: a dry run, a save that is read back and matches, an unknown dialog that stops the bot, an ERP that says "Saved." and did not save it, a forbidden function and a single save lock that are refused, and an adapter error with a duplicate send and a STOP. It ends with a table of the final job state per scenario and exits with 0 only if every scenario ended as intended.
+macOS and Linux:
+
+```text
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[test]"
+.venv/bin/python -m pytest -q
+.venv/bin/python -m demo
+```
+
+The demo needs no real waiting and prints the same output every run. It runs six scenarios against the fakes and prints each step: a dry run, a save that is read back and matches, an unknown dialog that stops the bot, an ERP that says "Saved." and did not save it, a forbidden function and a single save lock that are refused, and an adapter error with a duplicate send and a STOP. It ends with a table of the final job state per scenario and exits with 0 only if every scenario ended as intended.
+
+An excerpt from scenario 4, where the fake ERP shows "Saved." but stores a changed quantity:
+
+```text
+=== Scenario 4: The ERP lies about saving ===
+  save_mode='lie_altered': the viewer will say 'Saved.' whatever it stores.
+    [RunNextJob] called (screen=QuoteScreen, fn=save_form, saving=True)
+    [RunNextJob] dialog accepted (text=Save this form?)
+    [RunNextJob] dialog accepted (text=Saved.)
+    [RunNextJob] opened (screen=ListScreen)
+    [RunNextJob] dialog accepted (text=Loading complete.)
+    [RunNextJob] called (screen=ListScreen, fn=refresh_list, saving=False)
+    [RunNextJob] dialog accepted (text=Loading complete.)
+    [SavedJobIsReadBack] document read back (job=Q1, lines=2)
+    [VerificationFinishesJob] job finished (job=Q1, state=needs_human, detail=qty P-100: 2 != 3)
+  The ERP holds Q1: P-100 x3 @ 12.50; P-101 x2 (ERP price)
+```
+
+The ERP said "Saved.", the read back found 3 where 2 were typed, and the job went to a person instead of being marked done.
 
 ## Has it been used for real?
 
@@ -128,7 +161,7 @@ How to read this table: these results come from the real system, which is not pu
 Everything that can be run in this repository is invented: a fake form viewer, a fake catalog, a scripted phone and a scripted screen. They imitate the shape of the problem (dialogs that pop up, a save message that can lie, screen text that flickers while it loads), not the behaviour of any real product.
 
 - Passing tests show that the safeguards behave as designed against those fakes. They say nothing about any real system.
-- The real ERP adapter, which drives the scripting interface of an ActiveX form viewer through COM, is described in documents only. It is not included in this repository.
+- The real ERP adapter, which drives the scripting interface of an ActiveX form viewer through COM, is described in [docs/legacy-viewer.md](docs/legacy-viewer.md) only. It is not included in this repository.
 - The real screen watcher, phone-number watcher, recording collector and send logger are likewise described, not implemented here.
 
 ## More documents
@@ -137,6 +170,11 @@ Everything that can be run in this repository is invented: a fake form viewer, a
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Components, data flow, where each outside system hides, concept/sync split |
 | [docs/bot-safety.md](docs/bot-safety.md) | The safeguards one by one |
+| [docs/legacy-viewer.md](docs/legacy-viewer.md) | Driving the legacy ActiveX form viewer over COM: attaching, why not key presses, pitfalls |
 | [docs/screen-watcher.md](docs/screen-watcher.md) | Reading the operator's screen without touching it |
 | [docs/operations.md](docs/operations.md) | Flags, rollout, updates, self-healing, real-environment test table |
 | [docs/decisions.md](docs/decisions.md) | Decision log |
+
+## License
+
+MIT, see [LICENSE](LICENSE).
