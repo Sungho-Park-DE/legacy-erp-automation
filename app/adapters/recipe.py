@@ -1,7 +1,12 @@
 """How a job is typed into the fake viewer. Never emits the dangerous functions or popups."""
 from __future__ import annotations
 
+import re
+
 from app.adapters.ports import Call, Open, Set, Step
+
+
+_REMOVE_DIALOG = re.compile(r"Remove item (\S+) from this document\?")
 
 
 class FakeRecipe:
@@ -22,3 +27,26 @@ class FakeRecipe:
 
     def read_back_ref(self, job: str) -> str:
         return job
+
+    def edit_steps(self, ref: str, ops: list[dict]) -> list[Step]:
+        steps: list[Step] = [Open("EditScreen"), Set("header.ref", ref), Call("load_document")]
+        for op in ops:
+            steps.append(Set("edit.code", op["code"]))
+            if op["op"] == "remove":
+                steps.append(Call("remove_line"))
+            elif op["op"] == "qty":
+                steps.append(Set("edit.qty", str(op["qty"])))
+                steps.append(Call("set_line_qty"))
+            elif op["op"] == "add":
+                steps.append(Set("edit.qty", str(op["qty"])))
+                if op.get("price") is not None:
+                    steps.append(Set("edit.price", format(op["price"], "f")))
+                steps.append(Call("add_line"))
+            else:
+                raise ValueError(f"unknown op {op['op']!r}")
+        steps.append(Call("update_form", is_save=True))
+        return steps
+
+    def item_in_dialog(self, text: str) -> str | None:
+        match = _REMOVE_DIALOG.fullmatch(text)
+        return match.group(1) if match else None

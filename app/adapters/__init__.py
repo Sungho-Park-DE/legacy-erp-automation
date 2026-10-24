@@ -8,7 +8,7 @@ from collections.abc import Iterable
 
 from app import settings
 from app.adapters.fake_catalog import FakeCatalog
-from app.adapters.fake_erp import FakeErpViewer, ViewerError
+from app.adapters.fake_erp import FakeErpViewer, SimulatedCrash, ViewerError
 from app.adapters.fake_phone import ScriptedPhone
 from app.adapters.fake_screen import ScriptedScreen, flicker
 from app.adapters.ports import Catalog, ErpRecipe, ErpViewer, PhoneEvent, PhoneLog, ScreenReading, ScreenText
@@ -20,6 +20,7 @@ __all__ = [
     "FakeRecipe",
     "ScriptedPhone",
     "ScriptedScreen",
+    "SimulatedCrash",
     "ViewerError",
     "flicker",
     "make_catalog",

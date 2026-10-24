@@ -77,13 +77,14 @@ def test_real_policy_dialogs():
 
 def test_real_policy_vocabulary():
     rules = real_policy().rules()
-    assert rules["screens"] == ["HomeScreen", "ListScreen", "QuoteScreen"]
+    assert rules["screens"] == ["EditScreen", "HomeScreen", "ListScreen", "QuoteScreen"]
     assert rules["popups"] == {"ItemPicker": {"parent": "QuoteScreen", "opener": "open_picker"}}
     assert rules["calls"]["HomeScreen"] == []
     assert rules["calls"]["QuoteScreen"] == ["fill_line", "new_form", "open_picker", "save_form"]
     assert rules["calls"]["ItemPicker"] == ["close_picker", "pick_item"]
     assert rules["calls"]["ListScreen"] == ["open_row", "refresh_list"]
-    assert rules["save_calls"] == ["save_form"]
+    assert rules["calls"]["EditScreen"] == ["add_line", "load_document", "remove_line", "set_line_qty", "update_form"]
+    assert rules["save_calls"] == ["save_form", "update_form"]
     assert rules["forbidden"] == ["delete", "discard", "finalize", "print"]
 
 
