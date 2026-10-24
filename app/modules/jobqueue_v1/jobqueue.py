@@ -101,6 +101,9 @@ class JobQueue(Generic[Payload]):
         entry = self._get(job)
         return JobStatus(entry.state, entry.detail)
 
+    def payload(self, job: JobId) -> Payload:
+        return self._get(job).payload
+
     def list(self, state: JobState | None = None) -> list[JobId]:
         return [j for j, e in self._jobs.items() if state is None or e.state is state]
 

@@ -23,6 +23,7 @@
 
 **Queries:**
 - status(job) -> { state, detail }
+- payload(job) -> Payload (lets a restarted worker read back a job it never finished)
 - list(state?) -> list JobId
 
 **Not this concept's job:** what a job does (syncs + ERP adapter), whether an action is allowed (ActionPolicy), retrying (a person re-sends, which is a new job).

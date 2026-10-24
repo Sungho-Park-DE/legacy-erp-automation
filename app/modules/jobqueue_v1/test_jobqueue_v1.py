@@ -243,3 +243,13 @@ def test_errors_are_value_errors():
     for exc in (UnknownJob, NotRunning, JobAlreadyRunning, InvalidOutcome, InvalidJobId):
         assert issubclass(exc, JobQueueError)
         assert issubclass(exc, ValueError)
+
+
+def test_payload_is_readable_in_any_state():
+    q = JobQueue()
+    q.enqueue("j1", {"n": 1})
+    assert q.payload("j1") == {"n": 1}
+    q.take()
+    assert q.payload("j1") == {"n": 1}
+    with pytest.raises(UnknownJob):
+        q.payload("nope")

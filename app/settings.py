@@ -17,3 +17,6 @@ ERP = os.environ.get("LEA_ERP", "fake")
 CATALOG = os.environ.get("LEA_CATALOG", "fake")
 PHONE = os.environ.get("LEA_PHONE", "fake")
 SCREEN = os.environ.get("LEA_SCREEN", "fake")
+
+EDIT_UPDATE_REQUEST = "update"
+EDIT_DANGEROUS_REQUESTS = frozenset({"delete", "finalize", "print", "save"})
