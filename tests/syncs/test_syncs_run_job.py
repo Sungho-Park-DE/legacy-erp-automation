@@ -146,7 +146,7 @@ def test_save_function_outside_the_save_step_is_denied_even_with_both_flags(save
     assert world.erp.documents == {}
 
 
-def test_unknown_dialog_stops_the_robot():
+def test_unknown_dialog_stops_the_bot():
     world = build_world(erp=FakeErpViewer(dialog_on={"fill_line": "Server is restarting in 5 minutes."}))
     job = queue_quote(world, save=False)
     run_next_job(world)

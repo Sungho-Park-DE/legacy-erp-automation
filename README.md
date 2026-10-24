@@ -1,8 +1,10 @@
 # legacy-erp-automation
 
-Old business systems built for Internet Explorer and ActiveX still run many offices, and replacing them is rarely an option. This repository shows another way: leave the old system exactly as it is, put an agent on top of it, and let the agent do the typing while a person keeps every decision that matters.
+Old business systems built for Internet Explorer and ActiveX still run many offices, and replacing them is rarely an option. This repository shows another way: leave the old system exactly as it is, put a rule-based bot on top of it, and let the bot do the typing while a person keeps every decision that matters.
 
 The system described here is one that was built and used this way. A phone call comes in, the operator looks something up in an old catalog site, a quote web app builds the lines, a bot types them into the legacy ERP, and then reads the document back to check it. The old systems themselves were not modified or replaced.
+
+The bot follows fixed rules and uses no language model at run time. Everything it can do is listed in advance, so every action can be checked before it happens, and it never improvises: what the rules do not cover, it hands to a person.
 
 Three ideas carry it:
 

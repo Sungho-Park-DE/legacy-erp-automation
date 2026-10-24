@@ -1,8 +1,8 @@
 # Concept: ActionPolicy
 
-**Purpose:** Say, before the robot does anything in the target system, whether it is allowed — so that dangerous actions are not just avoided but impossible, and anything unexpected stops the robot instead of being clicked away.
+**Purpose:** Say, before the bot does anything in the target system, whether it is allowed — so that dangerous actions are not just avoided but impossible, and anything unexpected stops the bot instead of being clicked away.
 
-**Operational principle:** If the rules allow screen `Q` and functions `fill_line` and `save`, then opening `Q` and calling `fill_line` are allowed, `print` is refused because it is not listed, and `save` is refused unless saving is both permitted for this job and the robot is in its save step; a dialog asking "Delete this document?" is rejected, a known "Saved." notice is accepted, and a dialog nobody has seen before stops the robot.
+**Operational principle:** If the rules allow screen `Q` and functions `fill_line` and `save`, then opening `Q` and calling `fill_line` are allowed, `print` is refused because it is not listed, and `save` is refused unless saving is both permitted for this job and the bot is in its save step; a dialog asking "Delete this document?" is rejected, a known "Saved." notice is accepted, and a dialog nobody has seen before stops the bot.
 
 **State** (loaded from one rules file; changed only by a person):
 - screens: set str

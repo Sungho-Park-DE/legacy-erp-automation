@@ -1,6 +1,6 @@
 # Concept: JobQueue [Payload]
 
-**Purpose:** Hand work to a robot one job at a time, in order, with a switch a person can flip to stop it, and never do the same job twice.
+**Purpose:** Hand work to a bot one job at a time, in order, with a switch a person can flip to stop it, and never do the same job twice.
 
 **Operational principle:** If two jobs are queued, then `take` returns the first; if the queue is stopped, `take` returns nothing until it is resumed; a job that finished with NEEDS_HUMAN is not taken again; queueing the same job id twice keeps one job.
 

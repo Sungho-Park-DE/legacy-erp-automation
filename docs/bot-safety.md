@@ -57,7 +57,7 @@ The demo is `.venv\Scripts\python -m demo` (see the [README](../README.md#how-to
 
 ## 6. STOP switch and at most one automatic re-login
 
-- **Prevents:** a robot that cannot be stopped, and an account locked out by repeated failed logins.
+- **Prevents:** a bot that cannot be stopped, and an account locked out by repeated failed logins.
 - **How:**
   - `JobQueue.stop()` makes `take` return nothing. A job already running is allowed to finish. `resume()` undoes it.
   - If the login drops, one automatic re-login is allowed (`RELOGIN_MAX = 1` in [app/settings.py](../app/settings.py)). If that fails, the bot does not try again until a person does something.

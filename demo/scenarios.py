@@ -211,7 +211,7 @@ def scenario_unknown_dialog() -> Outcome:
         job = run_once(world, s)
 
     state, final = job_line(world, job)
-    s.expect(state == "needs_human", "the robot stopped and asked for a person")
+    s.expect(state == "needs_human", "the bot stopped and asked for a person")
     s.expect(erp.reset_count == 1 and erp.pending_dialog() is None, "the viewer was reset, no dialog left open")
     s.expect(erp.documents == {}, "nothing was saved")
     return s.end(

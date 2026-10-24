@@ -1,5 +1,5 @@
 {
-  "_comment": "Invented rules for the fake ERP. Keys starting with _ are ignored by the loader. Functions print_form, delete_form and finalize_form exist in the fake but are deliberately not listed: not listed means not allowed. Dialog patterns are matched against the whole text, case-sensitively; any question dialog containing a forbidden word is rejected whatever the rules say; any text matching no rule stops the robot.",
+  "_comment": "Invented rules for the fake ERP. Keys starting with _ are ignored by the loader. Functions print_form, delete_form and finalize_form exist in the fake but are deliberately not listed: not listed means not allowed. Dialog patterns are matched against the whole text, case-sensitively; any question dialog containing a forbidden word is rejected whatever the rules say; any text matching no rule stops the bot.",
   "screens": ["HomeScreen", "QuoteScreen", "ListScreen"],
   "popups": {
     "ItemPicker": { "parent": "QuoteScreen", "opener": "open_picker" }
