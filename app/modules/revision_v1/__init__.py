@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
 __all__ = ["Steps", "Stop", "Ok", "plan", "may_confirm_removal", "check_requests"]

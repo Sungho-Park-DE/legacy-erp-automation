@@ -1,4 +1,4 @@
-﻿# revision_v1
+# revision_v1
 
 Spec: `docs/concepts/Revision.md`. Pure decisions, no I/O.
 

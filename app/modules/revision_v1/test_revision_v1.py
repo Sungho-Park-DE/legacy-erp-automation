@@ -1,4 +1,4 @@
-﻿from app.modules.revision_v1 import Ok, Steps, Stop, check_requests, may_confirm_removal, plan
+from app.modules.revision_v1 import Ok, Steps, Stop, check_requests, may_confirm_removal, plan
 
 BASE = [{"code": "A", "qty": 2}, {"code": "B", "qty": 1}]
 
