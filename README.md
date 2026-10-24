@@ -14,7 +14,7 @@ Three ideas carry it:
 
 The design is about those safeguards. Everything you can run in this repository is shown on invented fake systems.
 
-> What is here: the concept specs ([docs/concepts](docs/concepts/)), six concept modules in `app/modules`, the syncs that connect them in `app/syncs`, fakes for every outside system in `app/adapters`, and a scenario demo in `demo/`. Where a document below says "described, not implemented here", it means exactly that.
+> What is here: the concept specs ([docs/concepts](docs/concepts/)), eight concept modules in `app/modules` (one of them in two versions), the syncs that connect them in `app/syncs`, fakes for every outside system in `app/adapters`, and a scenario demo in `demo/`. Where a document below says "described, not implemented here", it means exactly that.
 
 ## Architecture
 
@@ -122,7 +122,7 @@ python3 -m venv .venv
 .venv/bin/python -m demo
 ```
 
-The demo needs no real waiting and prints the same output every run. It runs six scenarios against the fakes and prints each step: a dry run, a save that is read back and matches, an unknown dialog that stops the bot, an ERP that says "Saved." and did not save it, a forbidden function and a single save lock that are refused, and an adapter error with a duplicate send and a STOP. It ends with a table of the final job state per scenario and exits with 0 only if every scenario ended as intended.
+The demo needs no real waiting and prints the same output every run. It runs ten scenarios against the fakes and prints each step: a dry run, a save that is read back and matches, an unknown dialog that stops the bot, an ERP that says "Saved." and did not save it, a forbidden function and a single save lock that are refused, an adapter error with a duplicate send and a STOP, a bot that dies right after saving and is only read back after the restart, a change to a saved document, the same change refused because a person changed the document first, and a removal question about another item that is answered no. It ends with a table of the final job state per scenario and exits with 0 only if every scenario ended as intended.
 
 An excerpt from scenario 4, where the fake ERP shows "Saved." but stores a changed quantity:
 

@@ -79,7 +79,9 @@ The fakes are invented. They say nothing about any real product ([README](../REA
 | [Quote](concepts/Quote.md) | Build a quote line by line; only a person sets a price. |
 | [JobQueue](concepts/JobQueue.md) | Hand work to the bot one job at a time, with a stop switch, never the same job twice. |
 | [ActionPolicy](concepts/ActionPolicy.md) | Say before the bot acts whether it is allowed; unexpected means stop. |
-| [Verification](concepts/Verification.md) | Decide whether the ERP holds what was meant, without trusting its message. |
+| [Verification](concepts/Verification.md) | Decide whether the ERP holds what was meant, without trusting its message. Version 2, behind a flag, also finds the new document when the ERP numbers documents itself. |
+| [SaveJournal](concepts/SaveJournal.md) | Remember before saving that a save is under way, so a restarted bot reads back instead of saving again. |
+| [Revision](concepts/Revision.md) | Change a saved document without overwriting a person's change; allow a removal for one exact item. |
 | [Call](concepts/Call.md) | Track incoming calls so that what is looked up lands next to the call. |
 | [Sighting](concepts/Sighting.md) | Decide that an identifier is really on screen, from text that flickers. |
 
