@@ -60,13 +60,24 @@ def plan(base, current, target):
     for code, line in saved.items():
         if code not in now:
             diffs.append(f"missing {code}")
-        elif not _same(line["qty"], now[code]["qty"]):
+            continue
+        if not _same(line["qty"], now[code]["qty"]):
             diffs.append(f"qty {code}: {_show(line['qty'])} != {_show(now[code]['qty'])}")
+        if line.get("price") is not None and not _same(line["price"], now[code].get("price")):
+            diffs.append(f"price {code}: {_show(line['price'])} != {_show(now[code].get('price'))}")
     diffs.extend(f"extra {code}" for code in now if code not in saved)
     if diffs:
         return Stop("changed since saved", tuple(diffs))
 
     wanted = {line["code"]: line for line in target}
+    price_changes = [
+        f"price {code}: {_show(saved[code].get('price'))} -> {_show(line['price'])}"
+        for code, line in wanted.items()
+        if code in saved and line.get("price") is not None and not _same(line["price"], saved[code].get("price"))
+    ]
+    if price_changes:
+        return Stop("price change not supported", tuple(price_changes))
+
     removes = [{"op": "remove", "code": c} for c in saved if c not in wanted]
     changes = [
         {"op": "qty", "code": c, "qty": line["qty"]}

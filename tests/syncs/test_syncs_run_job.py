@@ -261,11 +261,17 @@ def test_adapter_error_fails_the_job_resets_and_is_not_retried():
     assert erp.reset_count == 1
 
 
-def test_adapter_error_while_reading_back_also_fails_the_job(save_flag_on):
-    world = build_world(erp=FakeErpViewer(fail_on=("refresh_list",)))
+def test_adapter_error_while_reading_back_needs_a_person_because_the_save_went_through(save_flag_on):
+    erp = FakeErpViewer(fail_on=("refresh_list",))
+    world = build_world(erp=erp)
     job = queue_quote(world, save=True)
     run_next_job(world)
-    assert status(world, job) == (JobState.FAILED, "ViewerError: refresh_list failed")
+    state, detail = status(world, job)
+    assert state is JobState.NEEDS_HUMAN
+    assert detail == (
+        "error after the save was started, the document may be saved: ViewerError: refresh_list failed"
+    )
+    assert job in erp.documents
     assert world.erp.reset_count == 1
 
 

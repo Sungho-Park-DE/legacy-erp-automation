@@ -53,7 +53,14 @@ Step = Open | Set | Call
 
 
 class ErpRecipe(Protocol):
-    """How one job is typed into the ERP: screens, field paths, functions."""
+    """How one job is typed into the ERP: screens, field paths, functions.
+
+    A recipe that can remove a line also names, as attributes, the function that removes it (`removal_fn`) and the
+    field that holds the code of the item being removed (`item_field`), so that the syncs know neither.
+    """
+
+    removal_fn: str
+    item_field: str
 
     def steps(self, payload: dict) -> list[Step]: ...
     def read_back_steps(self, job: str) -> list[Step]:

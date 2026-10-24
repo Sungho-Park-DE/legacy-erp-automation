@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.adapters import FakeErpViewer, SimulatedCrash
+from app.adapters import FakeErpViewer, FakeRecipe, SimulatedCrash, ViewerError
 from app.modules.jobqueue_v1 import JobState
 from app.syncs import build_world, edit_becomes_job, recover_interrupted_jobs, run_next_job
 
@@ -172,3 +172,132 @@ def test_edit_needs_a_saved_document():
     world = build_world()
     with pytest.raises(ValueError):
         edit_becomes_job(world, "J1", TARGET, "E1")
+
+
+def test_edit_needs_a_job_that_ended_as_done():
+    erp = FakeErpViewer(save_mode="lie_altered")
+    world = build_world(erp=erp)
+    enqueue(world)
+    run_next_job(world)
+    assert state(world, "J1").state is JobState.NEEDS_HUMAN
+    with pytest.raises(ValueError, match="did not end as done"):
+        edit_becomes_job(world, "J1", TARGET, "E1")
+
+
+def test_edit_with_the_save_flag_off_is_a_dry_run(monkeypatch):
+    erp = FakeErpViewer()
+    world = saved(erp)
+    monkeypatch.delenv("LEA_FLAG_SAVE")
+    updates = erp.request_log().count("update")
+    result = edited(world, TARGET)
+    assert (result.state, result.detail) == (JobState.DONE, "dry run")
+    assert erp.request_log().count("update") == updates
+    assert [(line["code"], line["qty"]) for line in erp.documents["J1"].lines] == [("A-1", 2), ("B-2", 1)]
+
+
+def test_the_edit_job_carries_the_save_flag_as_it_was_when_it_was_queued(monkeypatch):
+    world = saved(FakeErpViewer())
+    assert edit_becomes_job(world, "J1", TARGET, "E-on")
+    assert world.queue.payload("E-on")["save"] is True
+    monkeypatch.delenv("LEA_FLAG_SAVE")
+    assert edit_becomes_job(world, "J1", TARGET, "E-off")
+    assert world.queue.payload("E-off")["save"] is False
+
+
+def test_a_second_edit_must_name_the_latest_job_that_changed_the_document():
+    world = saved(FakeErpViewer())
+    assert edited(world, TARGET, "E1").state is JobState.DONE
+    again = [{"code": "A-1", "qty": 4, "price": Decimal("12.50")}]
+    assert edit_becomes_job(world, "J1", again, "E2")
+    run_next_job(world)
+    assert state(world, "E2").detail.startswith("changed since saved")
+    assert edit_becomes_job(world, "E1", again, "E3")
+    run_next_job(world)
+    assert state(world, "E3").state is JobState.DONE
+
+
+# --- errors after the save was started, refused questions, prices ---
+
+
+class ErrorAfterSave(FakeErpViewer):
+    def _finish_save(self):
+        raise ViewerError("timeout after the save")
+
+
+def test_error_after_the_save_went_through_needs_a_person_not_failed():
+    erp = ErrorAfterSave()
+    world = build_world(erp=erp)
+    enqueue(world)
+    run_next_job(world)
+    result = state(world, "J1")
+    assert result.state is JobState.NEEDS_HUMAN
+    assert result.detail.startswith("error after the save was started")
+    assert "J1" in erp.documents
+
+
+def test_error_before_any_save_is_still_failed():
+    world = build_world(erp=FakeErpViewer(fail_on=("fill_line",)))
+    enqueue(world)
+    run_next_job(world)
+    assert state(world, "J1").state is JobState.FAILED
+
+
+def test_a_removal_question_the_rules_refuse_stops_the_change_before_the_update():
+    erp = FakeErpViewer(name_in_removal="DELETE-1")
+    world = saved(erp)
+    updates = erp.request_log().count("update")
+    result = edited(world, TARGET)
+    assert result.state is JobState.NEEDS_HUMAN
+    assert result.detail.startswith("removal question refused by the rules")
+    assert erp.request_log().count("update") == updates
+    assert [(line["code"], line["qty"]) for line in erp.documents["J1"].lines] == [("A-1", 2), ("B-2", 1)]
+
+
+def test_a_changed_price_stops_the_change_before_anything_is_typed():
+    erp = FakeErpViewer()
+    world = saved(erp)
+    updates = erp.request_log().count("update")
+    result = edited(world, [{"code": "A-1", "qty": 3, "price": Decimal("99.00")}])
+    assert (result.state, result.detail.split(":")[0]) == (JobState.NEEDS_HUMAN, "price change not supported")
+    assert erp.request_log().count("update") == updates
+
+
+def test_a_price_a_person_changed_is_seen_before_the_change():
+    erp = FakeErpViewer()
+    world = saved(erp)
+    erp.edit_by_person("J1", [{"code": "A-1", "qty": 2, "price": "50"}, {"code": "B-2", "qty": 1, "price": None}])
+    updates = erp.request_log().count("update")
+    result = edited(world, TARGET)
+    assert result.state is JobState.NEEDS_HUMAN
+    assert result.detail.startswith("changed since saved: price A-1")
+    assert erp.request_log().count("update") == updates
+
+
+def test_v2_with_the_bot_numbering_does_not_find_the_document(v2):
+    erp = FakeErpViewer(numbering="bot")
+    world = build_world(erp=erp)
+    enqueue(world)
+    run_next_job(world)
+    assert (state(world, "J1").state, state(world, "J1").detail) == (JobState.NEEDS_HUMAN, "saved document not found")
+    assert "J1" in erp.documents
+
+
+class RecipeThatMisnamesItsRemovalFunction:
+    """Types exactly like FakeRecipe but reports another name for the removal function."""
+
+    removal_fn = "not_the_removal_function"
+
+    def __init__(self):
+        self._inner = FakeRecipe()
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+def test_the_item_check_does_not_depend_on_the_recipe_naming_the_removal_function():
+    erp = FakeErpViewer(name_in_removal="Z-9")
+    world = saved(erp)
+    world.recipe = RecipeThatMisnamesItsRemovalFunction()
+    result = edited(world, TARGET)
+    assert result.state is JobState.NEEDS_HUMAN
+    assert "names Z-9" in result.detail

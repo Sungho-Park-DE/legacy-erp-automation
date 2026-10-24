@@ -84,3 +84,26 @@ def test_check_requests():
     assert check_requests(["Read"], "Update", danger) == Stop("update sent 0 times")
     assert check_requests(["Update", "Update"], "Update", danger) == Stop("update sent 2 times")
     assert check_requests(["Update", "DeleteOrder"], "Update", danger) == Stop("dangerous request DeleteOrder")
+
+
+def test_price_a_person_changed_is_a_change_since_saved():
+    base = [{"code": "A", "qty": 2, "price": "12.50"}, {"code": "B", "qty": 1}]
+    current = doc([{"code": "A", "qty": 2, "price": "50"}, {"code": "B", "qty": 1, "price": "7"}])
+    assert plan(base, current, base) == Stop("changed since saved", ("price A: 12.5 != 50",))
+
+
+def test_price_is_compared_as_a_number_and_only_where_the_bot_set_one():
+    base = [{"code": "A", "qty": 2, "price": "12.50"}, {"code": "B", "qty": 1}]
+    current = doc([{"code": "A", "qty": 2, "price": "12.5"}, {"code": "B", "qty": 1, "price": "7"}])
+    target = [{"code": "A", "qty": 3, "price": 12.5}, {"code": "B", "qty": 1}]
+    assert plan(base, current, target) == Steps(({"op": "qty", "code": "A", "qty": 3},))
+
+
+def test_a_new_price_on_a_saved_line_is_not_supported():
+    base = [{"code": "A", "qty": 2, "price": "12.50"}, {"code": "B", "qty": 1}]
+    assert plan(base, doc(base), [{"code": "A", "qty": 2, "price": "99"}]) == Stop(
+        "price change not supported", ("price A: 12.5 -> 99",)
+    )
+    assert plan(base, doc(base), [{"code": "B", "qty": 2, "price": "5"}]) == Stop(
+        "price change not supported", ("price B: None -> 5",)
+    )

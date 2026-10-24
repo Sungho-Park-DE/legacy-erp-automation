@@ -109,3 +109,10 @@ def test_read_back():
     recipe = FakeRecipe()
     assert recipe.read_back_steps("Q-7") == [Open("ListScreen"), Call("refresh_list")]
     assert recipe.read_back_ref("Q-7") == "Q-7"
+
+
+def test_recipe_names_its_removal_function_and_item_field():
+    recipe = FakeRecipe()
+    steps = recipe.edit_steps("Q-7", [{"op": "remove", "code": "P-1"}])
+    assert Set(recipe.item_field, "P-1") in steps
+    assert Call(recipe.removal_fn) in steps

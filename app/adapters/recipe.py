@@ -10,6 +10,9 @@ _REMOVE_DIALOG = re.compile(r"Remove item (\S+) from this document\?")
 
 
 class FakeRecipe:
+    removal_fn = "remove_line"
+    item_field = "edit.code"
+
     def steps(self, payload: dict) -> list[Step]:
         steps: list[Step] = [Open("QuoteScreen"), Call("new_form"), Set("header.ref", payload["job"])]
         for i, line in enumerate(payload["lines"]):
@@ -31,9 +34,9 @@ class FakeRecipe:
     def edit_steps(self, ref: str, ops: list[dict]) -> list[Step]:
         steps: list[Step] = [Open("EditScreen"), Set("header.ref", ref), Call("load_document")]
         for op in ops:
-            steps.append(Set("edit.code", op["code"]))
+            steps.append(Set(self.item_field, op["code"]))
             if op["op"] == "remove":
-                steps.append(Call("remove_line"))
+                steps.append(Call(self.removal_fn))
             elif op["op"] == "qty":
                 steps.append(Set("edit.qty", str(op["qty"])))
                 steps.append(Call("set_line_qty"))

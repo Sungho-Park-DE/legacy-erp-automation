@@ -16,7 +16,6 @@ from app.modules.verification_v2 import Match as MatchV2
 from .world import World
 
 POPUP_CLOSERS = ("close_picker",)
-REMOVAL_FUNCTION = "remove_line"
 
 
 @dataclass(frozen=True)
@@ -102,7 +101,17 @@ def edit_becomes_job(world: World, job_of: JobId, lines: list[dict], edit_job: J
     ref = world.journal.saved_ref(job_of)
     if base is None or ref is None:
         raise ValueError(f"job {job_of!r} has no saved and read-back document to change")
-    payload = {"job": edit_job, "mode": "edit", "of": job_of, "ref": ref, "base": base, "lines": lines, "save": True}
+    if world.queue.status(job_of).state is not JobState.DONE:
+        raise ValueError(f"job {job_of!r} did not end as done, so it is not a verified document to change")
+    payload = {
+        "job": edit_job,
+        "mode": "edit",
+        "of": job_of,
+        "ref": ref,
+        "base": base,
+        "lines": lines,
+        "save": flags.is_enabled("save"),
+    }
     queued = world.queue.enqueue(edit_job, payload)
     world.emit("EditBecomesJob", "edit queued" if queued else "edit refused, id known", job=edit_job, of=job_of, ref=ref)
     return queued
@@ -123,6 +132,10 @@ def run_edit_job(world: World, job: JobId, payload: dict) -> None:
         _halt(world, job, Halt(detail))
         return
     world.emit("RunEditJob", "planned", job=job, ops=len(planned.ops))
+    if not _allow_save(payload):
+        world.erp.reset()
+        _finish(world, "RunEditJob", job, JobState.DONE, "dry run")
+        return
     mark = len(world.erp.request_log())
     steps = world.recipe.edit_steps(ref, list(planned.ops))
     halt = _execute(world, job, payload, steps, cursor, _allow_save(payload), frozenset())
@@ -194,7 +207,17 @@ def adapter_error_finishes_job(world: World, job: JobId, error: Exception) -> No
         world.erp.reset()
     except Exception:
         pass
-    _finish(world, "AdapterErrorFinishesJob", job, JobState.FAILED, f"{type(error).__name__}: {error}")
+    detail = f"{type(error).__name__}: {error}"
+    if world.journal.phase(job) is not None:
+        _finish(
+            world,
+            "AdapterErrorFinishesJob",
+            job,
+            JobState.NEEDS_HUMAN,
+            f"error after the save was started, the document may be saved: {detail}",
+        )
+        return
+    _finish(world, "AdapterErrorFinishesJob", job, JobState.FAILED, detail)
 
 
 def _finish(world: World, sync: str, job: JobId, state: JobState, detail: str) -> None:
@@ -219,7 +242,7 @@ def _execute(
     for step in steps:
         if isinstance(step, Set):
             world.erp.set_value(step.path, step.value)
-            if step.path == "edit.code":
+            if step.path == getattr(world.recipe, "item_field", None):
                 cursor.edit_code = step.value
             continue
         if isinstance(step, Open):
@@ -271,15 +294,31 @@ def _follow(world: World, cursor: Cursor, fn: str) -> None:
     cursor.last_fn = fn
 
 
+def _removal_check(world: World, cursor: Cursor, text: str, during: str | None) -> Halt | None:
+    """An accepted question that names an item, or that is asked while a line is removed, must name the item being removed."""
+    recipe = world.recipe
+    named = recipe.item_in_dialog(text) if hasattr(recipe, "item_in_dialog") else None
+    removing = during is not None and during == getattr(recipe, "removal_fn", None)
+    if named is None and not removing:
+        return None
+    if revision.may_confirm_removal(named, cursor.edit_code):
+        return None
+    world.emit("RunEditJob", "removal names another item", text=text, removing=cursor.edit_code)
+    return Halt(f"removal confirmation names {named or 'no item'}, removing {cursor.edit_code}")
+
+
 def _drain_dialogs(world: World, cursor: Cursor, saving: bool, during: str | None) -> Halt | None:
     while (text := world.erp.pending_dialog()) is not None:
         verdict = world.policy.classify_dialog(text, saving, during=during)
-        if isinstance(verdict, Accept) and during == REMOVAL_FUNCTION:
-            named = world.recipe.item_in_dialog(text)
-            if not revision.may_confirm_removal(named, cursor.edit_code):
+        if isinstance(verdict, Accept):
+            halt = _removal_check(world, cursor, text, during)
+            if halt is not None:
                 world.erp.answer_dialog(False)
-                world.emit("RunEditJob", "removal names another item", text=text, removing=cursor.edit_code)
-                return Halt(f"removal confirmation names {named}, removing {cursor.edit_code}")
+                return halt
+        elif isinstance(verdict, Reject) and during is not None and during == getattr(world.recipe, "removal_fn", None):
+            world.erp.answer_dialog(False)
+            world.emit("RunEditJob", "removal question refused by the rules", text=text, removing=cursor.edit_code)
+            return Halt(f"removal question refused by the rules: {text!r}")
         if isinstance(verdict, (Accept, Reject)):
             accept = isinstance(verdict, Accept)
             world.erp.answer_dialog(accept)
