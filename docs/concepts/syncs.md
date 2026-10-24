@@ -79,3 +79,46 @@ sync AdapterErrorFinishesJob
 ```
 
 No sync retries a job. A person re-sends, which is a new job id.
+
+## Interrupted jobs and the save journal
+
+```text
+sync SaveIsJournaled
+  when   RunNextJob reaches a step Call(fn, is_save = true) that ActionPolicy allowed
+  where  SaveJournal.phase(job) = none          # else stop: needs_human "save already attempted"
+  then   SaveJournal.mark_saving(job, payload.lines, known_before)   # before Erp.call(fn)
+
+sync ReadBackIsJournaled
+  when   SavedJobIsReadBack found document ref
+  then   SaveJournal.mark_read_back(job, ref)
+
+sync RecoverInterruptedJob
+  when   worker start
+  where  JobQueue.list(running) -> job          # a job the previous worker never finished
+  then   SaveJournal.phase(job) is saving or read_back -> SavedJobIsReadBack(job)   # read only, never typed again
+         SaveJournal.phase(job) is none -> Erp.reset(); JobQueue.finish(job, needs_human, "interrupted before saving")
+```
+
+`known_before` is the set of document refs on the list screen before the save, read only when flag `VERIFICATION_V2` is on (empty otherwise). With that flag on, `SavedJobIsReadBack` lists documents, asks `Verification.locate(job, documents, known_before)`, and only a `Found(ref)` goes on to `compare`; `NotFound` and `Many` end the job as needs_human.
+
+## Changing a saved document
+
+```text
+sync EditBecomesJob
+  when   Request.edit(job_of, lines)
+  where  SaveJournal.saved_lines(job_of) = base and SaveJournal.saved_ref(job_of) = ref
+  then   JobQueue.enqueue(edit_job, payload = { mode: edit, of: job_of, ref, base, lines, save: true })
+
+sync RunEditJob
+  when   JobQueue.take() -> (job, payload with mode edit)
+  then   current := Erp.read_back(ref) through ErpRecipe.read_back_steps     # allowed screens only
+         Revision.plan(base, current, lines) -> Stop(r) ? needs_human r
+         mark := len(Erp.request_log())
+         steps := ErpRecipe.edit_steps(ref, ops), run like RunNextJob (same ActionPolicy checks, journal before the save step)
+         a dialog accepted by ActionPolicy while fn = remove_line is answered true only if
+           Revision.may_confirm_removal(ErpRecipe.item_in_dialog(text), item being removed); else answered false and stop
+         Revision.check_requests(Erp.request_log()[mark:], settings.EDIT_UPDATE_REQUEST, settings.EDIT_DANGEROUS_REQUESTS) -> Stop(r) ? needs_human r
+         read back and Verification.compare(expected = lines)
+```
+
+An edit is a new job id; the original job is never re-run.
