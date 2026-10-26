@@ -123,6 +123,27 @@ The form viewer has kept its request logs on the field PC since March 2022: 7,50
 - Following one printed document to the fax dialog: what was printed just before, whether the fax was sent or cancelled, and whether the recipient matches the fax number stored in the ERP for that customer.
 - Planned, not done yet: which parts were looked up but not ordered, and how often a quote turns into an order.
 
+## What the log changed
+
+These are changes to the real system that started from something seen in the recorded days or in the older logs. Each row says what the records showed and what was changed. The date is the day the change went into use. Details that would identify customers, vehicles or business volume are left out.
+
+| Date | What the records showed | What was changed |
+|---|---|---|
+| 2026-10-15 | A vehicle looked up in the catalog during one customer's call also ended up in the quote of a second customer, whose call had ended a few minutes earlier. One lookup fell within two calls. | Before a quote goes to the ERP, the web app asks the operator to confirm the customer when the same vehicle already went to a different customer that day, or when the lookup fell within more than one call. It asks; it does not block. |
+| 2026-10-17 | A maintenance set listed one idler pulley. Staff wrote "two pulleys needed" in the memo of two quotes and added the second pulley by hand to a quote the bot had made. The catalog shows two positions for that part in the same group. | A set item that has two positions in one catalog group becomes one line per position. |
+| 2026-10-19 | Accident quotes kept growing after they were first saved: staff opened the same quote again and again and added lines while the customer called back with more parts. The web app could only make new quotes. | A quote the bot saved can be opened again in the web app, changed and sent back; the bot changes the same ERP document. |
+| 2026-10-19 | In the older logs, when a claim form was saved a second time after the claim site, the only field that changed was most often the adjuster's phone number, which had been empty before. The date fields mostly followed two rules: the date of the first sales document, and today. | The claim window has a phone field that remembers the number per adjuster, the bot fills it in the form, and the dates are filled by those two rules. |
+| 2026-10-22 | On one day, both vehicles with a claim had two sales documents each. The bot claimed only one of them; staff merged the two by hand in the ERP. | One claim can cover several sales documents of the same vehicle. |
+| 2026-10-22 | Several bot quotes had an empty vehicle-registration field. All of them had been started from a VIN, and the catalog data already held the registration for each of those VINs. | When a quote starts from a VIN, the registration is filled from the catalog data. |
+| 2026-10-24 | Staff rarely open the catalog's vehicle-info screen. They pick the model on the parts-group screen and type the last six characters of the VIN. The screen watcher read only the vehicle-info screen, so on the first recorded day it missed more than half of the vehicles looked up, among them the largest quote of the day. | The watcher also reads the parts-group screen. The server accepts a vehicle from it only when exactly one vehicle of that model matches the six characters and the colour, year and engine shown on the screen. The first days in use are still being checked. |
+| 2026-10-24 | The bot stopped whenever the ERP listed one part number under two supply sources. On some quotes this meant sending the same lines again and again. The older part-lookup logs held the sources staff had picked in the past. | A rule picks the source, checked against the staff's past choices. Lines the rule could not decide were left out of the save and offered to the operator in a small window. Replaced the next day; see below. |
+
+## What the log did not show
+
+The source rule in the last row was built from the logs, and lines it could not decide went to the operator. On the day it went into use, staff asked for no pick-list windows at all, because they check every quote in the ERP afterwards anyway. Since 2026-10-25 the bot always picks: a source with stock first, and parts with no stock in any source are listed in the quote memo.
+
+The records show what staff did, not what they wanted. Some things only came out once a change was in use and staff could say what bothered them. That is why the web app has a suggestion box, and each suggestion gets a number and is handled one at a time.
+
 ## Pitfalls
 
 | Pitfall | What happened | What was done |
