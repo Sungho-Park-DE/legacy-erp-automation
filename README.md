@@ -178,3 +178,7 @@ Everything that can be run in this repository is invented: a fake form viewer, a
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+---
+
+I built this locally and published it in 10/2026, so the history here starts on the day it went public.
