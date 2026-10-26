@@ -2,7 +2,7 @@
 
 **Problem:** office staff have done the same work with the same tools for decades. A tool that works very differently would meet resistance and make the work uncomfortable. So the automation has to stay close to what staff already do and only take away the manual steps. That needs an accurate picture of how the work is actually done today, in the existing systems, not how anyone remembers it.
 
-**Answer:** a collector on the field PC records a working day from the tools that are already there: the catalog windows, the ERP form viewer's own request log, the phone-number watcher and the print queue. An evening report merges them into one time-ordered timeline and a short summary. Nothing is clicked, typed or changed.
+**Answer:** a collector on the field PC records a working day from the tools that are already there: the catalog windows, the ERP form viewer's own request log, the phone-number watcher and the print queue. An evening report merges them into one time-ordered timeline and a short summary. Nothing is clicked, typed or changed. The staff know about the logging.
 
 This page describes the real collector (described, not implemented here). Every example row below is made up: invented parts, times, numbers and screen names, in the same style as the fakes in this repository. No product, screen or address names of the real systems appear here.
 
