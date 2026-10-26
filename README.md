@@ -172,6 +172,7 @@ Everything that can be run in this repository is invented: a fake form viewer, a
 | [docs/bot-safety.md](docs/bot-safety.md) | The safeguards one by one |
 | [docs/legacy-viewer.md](docs/legacy-viewer.md) | Driving the legacy ActiveX form viewer over COM: attaching, why not key presses, pitfalls |
 | [docs/screen-watcher.md](docs/screen-watcher.md) | Reading the operator's screen without touching it |
+| [docs/activity-log.md](docs/activity-log.md) | Recording a working day on the field PC as an event log, with made-up example rows |
 | [docs/operations.md](docs/operations.md) | Flags, rollout, updates, self-healing, real-environment test table |
 | [docs/decisions.md](docs/decisions.md) | Decision log |
 
